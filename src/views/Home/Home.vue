@@ -3,13 +3,19 @@
     <nav-bar class="nav-box">
       <span slot="center">购物街</span>
     </nav-bar>
-    <BScroll class="content">
+    <BScroll class="content" 
+    ref="scroll" 
+    :probe="3" 
+    @backPosition="handleBackPosition"
+    :pullUp="true"
+    @pullUp="handleLoadMore">
       <home-swiper :banners="banners" />
       <home-recommend :recommends="recommends" />
       <home-feature-view />
       <tab-control class="tab-control" :tabList="['流行','新款','精选']" @tabClick="handleTabClick" />
       <goods class="goods" :goods="goods[currentIndex].list" />
     </BScroll>
+    <back-top @click.native="handleBackTop" v-show="isShowBackTop" />
   </div>
 </template>
 <script>
@@ -17,6 +23,7 @@ import NavBar from "components/common/navbar/NavBar";
 import TabControl from "components/contents/tabControl/TabControl";
 import Goods from "components/contents/goods/Goods";
 import BScroll from "components/common/bscroll/BScroll";
+import BackTop from "components/contents/backTop/BackTop";
 
 import HomeSwiper from "./childComps/HomeSwiper";
 import HomeRecommend from "./childComps/HomeRecommend";
@@ -33,7 +40,8 @@ export default {
         new: { page: 0, list: [] },
         sell: { page: 0, list: [] }
       },
-      currentIndex: "pop"
+      currentIndex: "pop",
+      isShowBackTop: false
     };
   },
   created() {
@@ -41,6 +49,9 @@ export default {
     this.getHomeDatas("pop");
     this.getHomeDatas("new");
     this.getHomeDatas("sell");
+    this.$bus.$on("itemImgLoad",()=>{
+      this.$refs.scroll.refresh()
+    })
   },
   methods: {
     //事件监听方法
@@ -60,6 +71,16 @@ export default {
         }
       }
     },
+    handleBackTop() {
+      this.$refs.scroll.scroll.scrollTo(0, 0, 500);
+    },
+    handleBackPosition(position) {
+      this.isShowBackTop=(-position.y)>1000;
+    },
+    handleLoadMore(){
+      this.getHomeDatas(this.currentIndex)
+      this.$refs.scroll.finishPullUp()
+    },
     //网络请求方法
     getHomeMultidatas() {
       getHomeMultidata().then(res => {
@@ -72,6 +93,7 @@ export default {
       getHomeData(type, page).then(res => {
         this.goods[type].page += 1;
         this.goods[type].list.push(...res.data.list);
+        this.currentIndex=type;
       });
     }
   },
@@ -82,7 +104,8 @@ export default {
     HomeFeatureView,
     TabControl,
     Goods,
-    BScroll
+    BScroll,
+    BackTop
   }
 };
 </script>
@@ -109,11 +132,11 @@ export default {
 .goods {
   padding: 3px;
 }
-.content{
-    position: absolute;
-    top:44px;
-    bottom: 49px;
-    left: 0px;
-    right: 0px;;
+.content {
+  position: absolute;
+  top: 44px;
+  bottom: 49px;
+  left: 0px;
+  right: 0px;
 }
 </style>
